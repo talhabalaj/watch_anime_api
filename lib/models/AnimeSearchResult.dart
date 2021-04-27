@@ -1,3 +1,6 @@
+import 'package:gogoanime/gogoanime.dart';
+import 'package:gogoanime/AnimeDetail.dart';
+
 class AnimeSearchResult {
   final String title;
   final String detailsUrl;
@@ -5,9 +8,7 @@ class AnimeSearchResult {
 
   AnimeSearchResult({this.title, this.detailsUrl, this.coverImageUrl});
 
-  @override
-  String toString() {
-  return '$title - $detailsUrl';
-   }
+  Future<AnimeDetail> getDetailedInfo() {
+    return GogoAnimeScrapper.getAnimeDetail(this);
+  }
 }
-

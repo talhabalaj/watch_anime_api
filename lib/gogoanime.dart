@@ -2,18 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:gogoanime/models/AnimeSearchResult.dart';
 import 'package:html/parser.dart' as parser;
 
-import 'models/AnimeDetail.dart';
+import 'AnimeDetail.dart';
 
 class GogoAnimeScrapper {
-  Dio scrapper;
+  static Dio scrapper = Dio(
+    BaseOptions(baseUrl: 'https://www1.gogoanime.ai'),
+  );
 
-  GogoAnimeScrapper() {
-    scrapper = Dio(
-      BaseOptions(baseUrl: 'https://www26.gogoanimes.tv'),
-    );
-  }
-
-  Future<List<AnimeSearchResult>> searchAnime(String query) async {
+  static Future<List<AnimeSearchResult>> searchAnime(String query) async {
     var res = await scrapper.get(
       '/search.html',
       queryParameters: {
@@ -21,7 +17,9 @@ class GogoAnimeScrapper {
         'id': -1,
       },
       options: Options(
-        headers: {'x-requested-with': 'XMLHttpRequest'},
+        headers: {
+          'x-requested-with': 'XMLHttpRequest',
+        },
       ),
     );
     var doc = parser.parse(res.data);
@@ -38,11 +36,28 @@ class GogoAnimeScrapper {
     return searchResults;
   }
 
-  AnimeEpisodeStreamingInfo getStreamInfo(AnimeEpisode ep) {
+  static Future<List<AnimeEpisodeStreamInfo>> getStreamInfo(
+      AnimeEpisode ep) async {
     assert(ep.link != null, 'ep link should not be null');
+
+    var res = await scrapper.get(
+      ep.link,
+    );
+
+    var doc = parser.parse(res.data);
+    var linksElement = doc.querySelectorAll('.anime_muti_link li > a');
+
+    return linksElement
+        .map<AnimeEpisodeStreamInfo>(
+          (e) => AnimeEpisodeStreamInfo.factory(
+            serverName: e.nodes.first.text,
+            streamLink: 'https://' + e.attributes['data-video'],
+          ),
+        )
+        .toList();
   }
 
-  Future<AnimeDetail> getAnimeDetail(AnimeSearchResult anime) async {
+  static Future<AnimeDetail> getAnimeDetail(AnimeSearchResult anime) async {
     assert(anime.detailsUrl != null, 'anime detial url doesnt exist');
     var res = await scrapper.get(
       anime.detailsUrl,
@@ -101,7 +116,7 @@ class GogoAnimeScrapper {
     );
   }
 
-  Future<List<AnimeEpisode>> _getEpisodeList(
+  static Future<List<AnimeEpisode>> _getEpisodeList(
       {int startEp, int endEp, String movieId, String defaultEp}) async {
     var res = await scrapper.get('/load-list-episode', queryParameters: {
       'ep_start': startEp,
